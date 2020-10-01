@@ -1,0 +1,9 @@
+#logo {
+  margin: 2rem auto;
+  width: 320px;
+  height: 160px;
+  background: #000 url('../images/gamez-gear-sprite-360.jpg') no-repeat 0px 0px;
+  box-shadow:
+    rgba(17, 104, 151, 0.25) -20px 15px 60px,
+    rgba(201, 113, 12, 0.15) 5px -5px 20px;
+}
