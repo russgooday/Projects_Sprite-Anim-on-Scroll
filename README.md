@@ -1,4 +1,4 @@
-##Sprite animation on scroll
+## Sprite animation on scroll
 ---
 Sprite animation driven by the page's vertical scroll. Works on an elements background image.
 
@@ -26,6 +26,6 @@ CSS
 #sprite-anim {
   width: 320px; // 3200 / 10
   height: 160px; // 640 / 4
-  background: #000 url('../images/gamez-gear-sprite-360.jpg') no-repeat 0px 0px;
+  background: #000 url('../images/sprite.jpg') no-repeat 0px 0px;
 }
 ```
