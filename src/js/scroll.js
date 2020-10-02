@@ -1,7 +1,4 @@
-
-
-document.addEventListener('DOMContentLoaded', function (event) {
-
+(function (win, doc) {
   function elementInViewY (element, height = 0) {
     const view = element.getBoundingClientRect()
     return (
@@ -86,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
    * @param {Object} spriteProps - sprite details e.g. width, height, frameCountX and frameCountY
    */
   function getScrollHandler (target, spriteProps) {
-    const docElement = document.documentElement
+    const docElement = doc.documentElement
     const sprite = makeSprite(spriteProps)
     let prevScroll = docElement.scrollTop
 
@@ -98,23 +95,31 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
       if (!elementInViewY(target, sprite.offsetY)) return // if element is not coming into view return
 
-      window.requestAnimationFrame(() => {
+      win.requestAnimationFrame(() => {
         target.style.backgroundPositionX = `${frame.x}px`
         target.style.backgroundPositionY = `${frame.y}px`
       })
     }
   }
 
-  window.addEventListener(
-    'scroll',
-    throttle(
-      getScrollHandler(document.querySelector('#logo'), {
-        width: 3200,
-        height: 640,
-        frameCountX: 10,
-        frameCountY: 4
-      })
-      , 30
+  function spritePlayOnScroll (
+    element,
+    spriteProps = {
+      width: 0,
+      height: 0,
+      frameCountX: 0,
+      frameCountY: 0
+    },
+    wait = 30
+  ) {
+    win.addEventListener(
+      'scroll',
+      throttle(
+        getScrollHandler(element, spriteProps),
+        wait
+      )
     )
-  )
-})
+  }
+
+  win.spritePlayOnScroll = spritePlayOnScroll
+}(window, window.document))
