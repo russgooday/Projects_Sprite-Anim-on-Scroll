@@ -1,5 +1,5 @@
 ## Sprite animation on scroll
----
+
 Sprite animation driven by the page's vertical scroll. Works on an elements background image.
 
 Example usage
