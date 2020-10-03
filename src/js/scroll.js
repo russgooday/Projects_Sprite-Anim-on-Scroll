@@ -85,8 +85,7 @@
   // Handlers
 
   /**
-   * @param {Element} target - element with background to animate
-   * @param {Object} spriteProps - sprite details include { width, height, columns and rows }
+   * @param {Object} spriteElement - sprite details include { target, width, height, columns, rows }
    * @returns {Function} Handler
    */
   function getScrollHandler (spriteElement) {
