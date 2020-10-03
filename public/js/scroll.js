@@ -1,20 +1,76 @@
 (function (win, doc) {
-  function elementInViewY (element, height = 0) {
-    const view = element.getBoundingClientRect()
-    return (
-      view.top >= -height && view.bottom <= (window.innerHeight || document.documentElement.clientHeight) + height
-    )
+
+  // Sprite model
+
+  /**
+   * Base sprite object creator
+   * @param {Object} sprite properties and dimensions
+   * @returns {Object} base sprite object
+   */
+  function sprite ({ columns, rows, ...sprite }) {
+    return {
+      ...sprite,
+      currFrame: 0,
+      frames: [...Array(columns * rows)],
+      column: sprite.width / columns,
+      row: sprite.height / rows
+    }
   }
+
+  /**
+   * Pre calculate each frame's background x and y position in sequence
+   * @param {Object}
+   * @returns {Object} sprite clone appended with frames array
+   */
+  function backgroundPositions ({ frames = [], ...sprite }) {
+
+    for (let i = 0, x = 0, y = 0; i < frames.length; i++) {
+      frames[i] = { x, y }
+      x = (x - sprite.column) % sprite.width
+      if (x === 0) y -= sprite.row
+    }
+    return { ...sprite, frames }
+  }
+
+  // Sprite methods @return amended sprite clone
+
+  const nextFrame = ({ currFrame, frames, ...sprite }) => (
+    { ...sprite, frames, currFrame: (currFrame + 1) % frames.length }
+  )
+
+  const prevFrame = ({ currFrame, frames, ...sprite }) => (
+    { ...sprite, frames, currFrame: (currFrame === 0) ? frames.length - 1 : currFrame - 1 }
+  )
+
+  const setScrollY = sprite => ({ ...sprite, scrollY: window.pageYOffset })
+
+
+  // Sprite methods @return sprite values
+
+  const getFrame = ({ frames, currFrame }) => frames[currFrame]
+
+
+  /* Helpers */
+
+  const pipe = (...funcs) => arg => funcs.reduce((obj, func) => func(obj), arg)
+
+  // calculate if element is vertically in view
+  const elementInViewY = ((win, docElement) => (element, height = 0) => {
+
+    const { top, bottom } = element.getBoundingClientRect()
+    return top >= -height && bottom <= (win.innerHeight || docElement.clientHeight) + height
+
+  })(window, document.documentElement)
 
   /**
    * Throttles each event call to handler e.g scroll event
    * @param {Function} event handler
-   * @param {Number} wait - milliseconds between each event call
+   * @param {Number} wait - milliseconds between each event handler call
    */
-  function throttle (handler, wait = 60) {
+  function throttle (handler, wait = 30) {
     let timer = null
 
-    return function (event) {
+    return (event) => {
       if (timer !== null) return
 
       timer = setTimeout(() => {
@@ -26,100 +82,49 @@
     }
   }
 
-  /**
-   * Pre calculate each frame's x and y coordinates
-   * @param {Object}
-   * @returns {Array} All x and y coordinates in sequence
-   */
-  function preCalcAllFramePositions ({
-    width,
-    height,
-    offsetX,
-    offsetY,
-    frameCount
-  }) {
-    const positions = []
-
-    for (let i = 0, x = 0, y = 0; i < frameCount; i++) {
-      positions[i] = { x, y }
-      x = (x - offsetX) % width
-      if (x === 0) y = (y - offsetY) % height
-    }
-    return positions
-  }
+  // Handlers
 
   /**
-   * Sprite Factory function
-   * @param {Object} sprite's basic properties
-   * @returns {Object}
+   * @param {Object} spriteElement - includes { target, width, height, columns, rows, {Array} frames }
+   * @returns {Function} Handler
    */
-  function makeSprite ({ width, height, frameCountX, frameCountY }) {
-    let currFrame = 0
-
-    const sprite = {
-      width,
-      height,
-      offsetX: width / frameCountX,
-      offsetY: height / frameCountY,
-      frameCount: frameCountX * frameCountY,
-
-      nextFrame: () => {
-        currFrame = (currFrame + 1) % sprite.frameCount
-        return sprite.frames[currFrame]
-      },
-
-      prevFrame: () => {
-        currFrame = (currFrame === 0) ? sprite.frameCount - 1 : currFrame - 1
-        return sprite.frames[currFrame]
-      }
-    }
-
-    sprite.frames = preCalcAllFramePositions(sprite)
-    return sprite
-  }
-
-  /**
-   * @param {Element} target - element with background to animate
-   * @param {Object} spriteProps - sprite details e.g. width, height, frameCountX and frameCountY
-   */
-  function getScrollHandler (target, spriteProps) {
-    const docElement = doc.documentElement
-    const sprite = makeSprite(spriteProps)
-    let prevScroll = docElement.scrollTop
+  function getScrollHandler (spriteElement) {
 
     // return handler
-    return function (event) {
-      const currScroll = docElement.scrollTop
-      const frame = (currScroll > prevScroll) ? sprite.nextFrame() : sprite.prevFrame()
-      prevScroll = currScroll
+    return (event) => {
 
-      if (!elementInViewY(target, sprite.offsetY)) return // if element is not coming into view return
+      // update spriteElement
+      spriteElement = setScrollY((window.pageYOffset > spriteElement.scrollY) ? nextFrame(spriteElement) : prevFrame(spriteElement))
 
-      win.requestAnimationFrame(() => {
-        target.style.backgroundPositionX = `${frame.x}px`
-        target.style.backgroundPositionY = `${frame.y}px`
+      const target = spriteElement.target
+
+      if (!elementInViewY(target, spriteElement.row)) return
+
+      window.requestAnimationFrame(() => {
+        target.style.backgroundPositionX = `${getFrame(spriteElement).x}px`
+        target.style.backgroundPositionY = `${getFrame(spriteElement).y}px`
       })
     }
   }
 
-  function spritePlayOnScroll (
-    element,
-    spriteProps = {
-      width: 0,
-      height: 0,
-      frameCountX: 0,
-      frameCountY: 0
-    },
-    wait = 30
-  ) {
+  // Main user functions
+
+  function spritePlayOnScroll (target, spriteProps, wait = 30) {
     win.addEventListener(
       'scroll',
       throttle(
-        getScrollHandler(element, spriteProps),
+        getScrollHandler(
+          pipe(
+            sprite,
+            backgroundPositions,
+            setScrollY
+          )({ ...spriteProps, target })
+        ),
         wait
       )
     )
   }
 
+  // append user function to window
   win.spritePlayOnScroll = spritePlayOnScroll
 }(window, window.document))
