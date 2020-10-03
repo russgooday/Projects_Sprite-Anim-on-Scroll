@@ -28,8 +28,7 @@
     const { top, bottom } = element.getBoundingClientRect()
 
     return top >= -height && bottom <= (win.innerHeight || docElement.clientHeight) + height
-  })((window.innerHeight && window) || document.documentElement)
-
+  })((window, document.documentElement)
 
 
   const makeSprite = (sprite) => ({ currFrame: 0, ...sprite })
@@ -85,16 +84,7 @@
     }
   }
 
-  function spritePlayOnScroll (
-    element,
-    {
-      width = 0,
-      height = 0,
-      frameCountX = 0,
-      frameCountY = 0
-    },
-    wait = 30
-  ) {
+  function spritePlayOnScroll (element, { width, height, frameCountX, frameCountY }, wait = 30) {
     win.addEventListener(
       'scroll',
       throttle(
