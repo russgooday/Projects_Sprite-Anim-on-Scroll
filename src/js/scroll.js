@@ -1,101 +1,86 @@
-/**
+(function (win, doc) {
+
+  /* Helpers */
+  const pipe = (...funcs) => arg => funcs.reduce((obj, func) => func(obj), arg)
+
+  /**
    * Throttles each event call to handler e.g scroll event
    * @param {Function} event handler
    * @param {Number} wait - milliseconds between each event call
    */
-function throttle (handler, wait = 60) {
-  let timer = null
+  const throttle = (handler, wait = 30) => {
+    let timer = null
 
-  return function (event) {
-    if (timer !== null) return
+    return (event) => {
+      if (timer !== null) return
 
-    timer = setTimeout(() => {
-      clearTimeout(timer)
-      timer = null
+      timer = setTimeout(() => {
+        clearTimeout(timer)
+        timer = null
 
-      handler.call(event.target, event)
-    }, wait)
-  }
-}
-
-(function (win, doc) {
-  const elementInViewY = (innerHeight => (element, height = 0) => {
-    const view = element.getBoundingClientRect()
-    return view.top >= -height && view.bottom <= (innerHeight) + height
-  })(win.innerHeight || doc.documentElement.clientHeight)
-
-  /**
-     * Pre calculate each frame's x and y coordinates
-     * @param {Object}
-     * @returns {Object} with frames' x and y coordinates in sequence
-     */
-  const preCalcAllFramePositions = ({ frames, ...sprite }) => ({
-    ...sprite,
-    frames: [...frames].reduce(
-      ([x, y]) => {
-        x = (x - sprite.frameWidth) % sprite.width
-        return [x, (x === 0) ? y - sprite.frameHeight : y]
-      }, [0, 0]
-    )
-  })
-
-  const nextFrame = ({ currFrame, framesCount, ...sprite }) => (
-    { ...sprite, currFrame: (currFrame + 1) % framesCount }
-  )
-
-  const prevFrame = ({ currFrame, framesCount, ...sprite }) => (
-    { ...sprite, currFrame: (currFrame === 0) ? framesCount - 1 : currFrame - 1 }
-  )
-
-  /**
-     * Sprite Factory function
-     * @param {Object} sprite's properties
-     * @returns {Object}
-     */
-  function makeSprite (spriteProps) {
-    let currFrame = 0
-
-    const sprite = Object.assign(
-      {},
-      spriteProps,
-      {
-        frames: preCalcAllFramePositions(spriteProps),
-
-        nextFrame: () => {
-          currFrame = (currFrame + 1) % sprite.framesCount
-          return sprite.frames[currFrame]
-        },
-
-        prevFrame: () => {
-          currFrame = (currFrame === 0) ? sprite.framesCount - 1 : currFrame - 1
-          return sprite.frames[currFrame]
-        }
-      }
-    )
-
-    return sprite
+        handler.call(event.target, event)
+      }, wait)
+    }
   }
 
+  const elementInViewY = ((win, docElement) => (element, height = 0) => {
+
+    const { top, bottom } = element.getBoundingClientRect()
+
+    return top >= -height && bottom <= (win.innerHeight || docElement.clientHeight) + height
+  })((window.innerHeight && window) || document.documentElement)
+
+
+
+  const makeSprite = (sprite) => ({ currFrame: 0, ...sprite })
+
   /**
-     * @param {Element} target - element with background to animate
-     * @param {Object} spriteProps - sprite details e.g. width, height, frameCountX and frameCountY
-     */
+   * Pre calculate each frame's x and y coordinates
+   * @param {Object}
+   * @returns {Object} with frames' x and y coordinates in sequence
+   */
+  const preCalcAllFramePositions = ({ framesCount = 0, ...sprite }) => {
+
+    for (var i = 0, x = 0, y = 0, frames = []; i < framesCount; i++) {
+      frames[i] = { x, y }
+      x = (x - sprite.frameWidth) % sprite.width
+      if (x === 0) y -= sprite.frameHeight
+    }
+    return { ...sprite, frames }
+  }
+
+  const nextFrame = ({ currFrame, frames, ...sprite }) =>
+    ({ ...sprite, frames, currFrame: (currFrame + 1) % frames.length })
+
+  const prevFrame = ({ currFrame, frames, ...sprite }) =>
+    ({ ...sprite, frames, currFrame: (currFrame === 0) ? frames.length - 1 : currFrame - 1 })
+
+  const setScrollY = sprite => ({ ...sprite, scrollY: window.pageYOffset })
+
+  const getFrame = ({ frames, currFrame }) => frames[currFrame]
+
+  /**
+   * @param {Element} target - element with background to animate
+   * @param {Object} spriteProps - sprite details e.g. width, height, frameCountX and frameCountY
+   */
   function getScrollHandler (target, spriteProps) {
-    const docElement = doc.documentElement
-    const sprite = makeSprite(spriteProps)
-    let prevScroll = docElement.scrollTop
+
+    let sprite = pipe(
+      makeSprite,
+      preCalcAllFramePositions,
+      setScrollY
+    )(spriteProps)
 
     // return handler
     return function (event) {
-      const currScroll = docElement.scrollTop
-      const frame = (currScroll > prevScroll) ? sprite.nextFrame() : sprite.prevFrame()
-      prevScroll = currScroll
 
-      if (!elementInViewY(target, sprite.frameHeight)) return // if element is not coming into view return
+      sprite = setScrollY((window.pageYOffset > sprite.scrollY) ? nextFrame(sprite) : prevFrame(sprite))
 
-      win.requestAnimationFrame(() => {
-        target.style.backgroundPositionX = `${frame.x}px`
-        target.style.backgroundPositionY = `${frame.y}px`
+      if (!elementInViewY(target, sprite.frameHeight)) return
+
+      window.requestAnimationFrame(() => {
+        target.style.backgroundPositionX = `${getFrame(sprite).x}px`
+        target.style.backgroundPositionY = `${getFrame(sprite).y}px`
       })
     }
   }
@@ -116,8 +101,8 @@ function throttle (handler, wait = 60) {
         getScrollHandler(
           element,
           {
-            spriteWidth: width,
-            spriteHeight: height,
+            width,
+            height,
             frameWidth: width / frameCountX,
             frameHeight: height / frameCountY,
             framesCount: frameCountX * frameCountY
