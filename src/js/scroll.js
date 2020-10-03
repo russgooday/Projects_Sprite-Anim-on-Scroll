@@ -22,7 +22,7 @@
    * @param {Object}
    * @returns {Object} sprite clone appended with frames array
    */
-  function preCalcAllFramePositions ({ frames = [], ...sprite }) {
+  function backgroundPositions ({ frames = [], ...sprite }) {
 
     for (let i = 0, x = 0, y = 0; i < frames.length; i++) {
       frames[i] = { x, y }
@@ -67,7 +67,7 @@
    * @param {Function} event handler
    * @param {Number} wait - milliseconds between each event handler call
    */
-  const throttle = (handler, wait = 30) => {
+  function throttle (handler, wait = 30) {
     let timer = null
 
     return (event) => {
@@ -86,20 +86,18 @@
 
   /**
    * @param {Element} target - element with background to animate
-   * @param {Object} spriteProps - sprite details e.g. width, height, frameCountX and frameCountY
+   * @param {Object} spriteProps - sprite details include { width, height, columns and rows }
+   * @returns {Function} Handler
    */
-  function getScrollHandler (target, spriteProps) {
-
-    let spriteElement = pipe(
-      sprite,
-      preCalcAllFramePositions,
-      setScrollY
-    )({ ...spriteProps, target })
+  function getScrollHandler (spriteElement) {
 
     // return handler
-    return function (event) {
+    return (event) => {
 
+      // update spriteElement
       spriteElement = setScrollY((window.pageYOffset > spriteElement.scrollY) ? nextFrame(spriteElement) : prevFrame(spriteElement))
+
+      const target = spriteElement.target
 
       if (!elementInViewY(target, spriteElement.row)) return
 
@@ -112,13 +110,16 @@
 
   // Main user functions
 
-  function spritePlayOnScroll (element, spriteProps, wait = 30) {
+  function spritePlayOnScroll (target, spriteProps, wait = 30) {
     win.addEventListener(
       'scroll',
       throttle(
         getScrollHandler(
-          element,
-          spriteProps
+          pipe(
+            sprite,
+            backgroundPositions,
+            setScrollY
+          )({ ...spriteProps, target })
         ),
         wait
       )
