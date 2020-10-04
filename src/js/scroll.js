@@ -34,16 +34,17 @@
 
   // Sprite methods @return amended sprite clone
 
-  const nextFrame = ({ currFrame, frames, ...sprite }) => (
-    { ...sprite, frames, currFrame: (currFrame + 1) % frames.length }
-  )
+  function nextFrame (sprite) {
+    const { currFrame, frames: { length } } = sprite
+    return { ...sprite, currFrame: (currFrame + 1) % length }
+  }
 
-  const prevFrame = ({ currFrame, frames, ...sprite }) => (
-    { ...sprite, frames, currFrame: (currFrame === 0) ? frames.length - 1 : currFrame - 1 }
-  )
+  function prevFrame (sprite) {
+    const { currFrame, frames: { length } } = sprite
+    return { ...sprite, currFrame: (currFrame === 0) ? length - 1 : currFrame - 1 }
+  }
 
-  const setScrollY = sprite => ({ ...sprite, scrollY: window.pageYOffset })
-
+  const setScrollY = (sprite, scrollY) => ({ ...sprite, scrollY })
 
   // Sprite methods @return sprite values
 
@@ -53,6 +54,8 @@
   /* Helpers */
 
   const pipe = (...funcs) => arg => funcs.reduce((obj, func) => func(obj), arg)
+
+  const bindRest = (fn, ...rest) => (...args) => fn(...args, ...rest)
 
   // calculate if element is vertically in view
   const elementInViewY = ((win, docElement) => (element, height = 0) => {
@@ -94,7 +97,14 @@
     return (event) => {
 
       // update spriteElement
-      spriteElement = setScrollY((window.pageYOffset > spriteElement.scrollY) ? nextFrame(spriteElement) : prevFrame(spriteElement))
+      spriteElement = setScrollY(
+
+        window.pageYOffset > spriteElement.scrollY
+          ? nextFrame(spriteElement)
+          : prevFrame(spriteElement),
+
+        window.pageYOffset
+      )
 
       const target = spriteElement.target
 
@@ -117,7 +127,7 @@
           pipe(
             sprite,
             backgroundPositions,
-            setScrollY
+            bindRest(setScrollY, window.pageYOffset)
           )({ ...spriteProps, target })
         ),
         wait
