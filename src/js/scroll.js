@@ -34,17 +34,17 @@
 
   // Sprite methods @return amended sprite clone
 
-  function nextFrame (sprite) {
+  const nextFrame = (sprite) => {
     const { currFrame, frames: { length } } = sprite
     return { ...sprite, currFrame: (currFrame + 1) % length }
   }
 
-  function prevFrame (sprite) {
+  const prevFrame = (sprite) => {
     const { currFrame, frames: { length } } = sprite
     return { ...sprite, currFrame: (currFrame === 0) ? length - 1 : currFrame - 1 }
   }
 
-  const setScrollY = (sprite, scrollY) => ({ ...sprite, scrollY })
+  const setScrollY = (scrollY, sprite) => ({ ...sprite, scrollY })
 
   // Sprite methods @return sprite values
 
@@ -54,8 +54,6 @@
   /* Helpers */
 
   const pipe = (...funcs) => arg => funcs.reduce((obj, func) => func(obj), arg)
-
-  const bindRest = (fn, ...rest) => (...args) => fn(...args, ...rest)
 
   // calculate if element is vertically in view
   const elementInViewY = ((win, docElement) => (element, height = 0) => {
@@ -88,7 +86,7 @@
   // Handlers
 
   /**
-   * @param {Object} spriteElement - includes { target, width, height, columns, rows, {Array} frames }
+   * @param {Object} sprite element { target, width, height, columns, rows, {Array} frames }
    * @returns {Function} Handler
    */
   function getScrollHandler (spriteElement) {
@@ -98,28 +96,26 @@
 
       // update spriteElement
       spriteElement = setScrollY(
-
-        window.pageYOffset > spriteElement.scrollY
+        win.pageYOffset,
+        win.pageYOffset > spriteElement.scrollY
           ? nextFrame(spriteElement)
-          : prevFrame(spriteElement),
-
-        window.pageYOffset
+          : prevFrame(spriteElement)
       )
 
-      const target = spriteElement.target
+      const { target, row } = spriteElement
+      if (!elementInViewY(target, row)) return
 
-      if (!elementInViewY(target, spriteElement.row)) return
-
-      window.requestAnimationFrame(() => {
-        target.style.backgroundPositionX = `${getFrame(spriteElement).x}px`
-        target.style.backgroundPositionY = `${getFrame(spriteElement).y}px`
-      })
+      const { x, y } = getFrame(spriteElement)
+      win.requestAnimationFrame(() => { target.style.backgroundPosition = `${x}px ${y}px` })
     }
   }
 
   // Main user functions
 
   function spritePlayOnScroll (target, spriteProps, wait = 30) {
+
+    const setInitScrollY = setScrollY.bind(null, win.pageYOffset)
+
     win.addEventListener(
       'scroll',
       throttle(
@@ -127,7 +123,7 @@
           pipe(
             sprite,
             backgroundPositions,
-            bindRest(setScrollY, window.pageYOffset)
+            setInitScrollY
           )({ ...spriteProps, target })
         ),
         wait
