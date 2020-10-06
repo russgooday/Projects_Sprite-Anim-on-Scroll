@@ -46,20 +46,22 @@
 
   const setScrollY = (scrollY, sprite) => ({ ...sprite, scrollY })
 
-  // Sprite methods @return sprite values
+  // Sprite methods get and set sprite values
 
-  const getFrame = ({ frames, currFrame }) => frames[currFrame]
-
+  const setBackgroundPosition = ({ target: { style }, currFrame, frames }) => {
+    const { x, y } = frames[currFrame]
+    style.backgroundPosition = `${x}px ${y}px`
+  }
 
   /* Helpers */
 
   const pipe = (...funcs) => arg => funcs.reduce((obj, func) => func(obj), arg)
 
   // calculate if element is vertically in view
-  const elementInViewY = ((win, docElement) => (element, height = 0) => {
+  const elementInViewY = ((win, docElement) => ({ target, row }) => {
 
-    const { top, bottom } = element.getBoundingClientRect()
-    return top >= -height && bottom <= (win.innerHeight || docElement.clientHeight) + height
+    const { top, bottom } = target.getBoundingClientRect()
+    return top >= -row && bottom <= (win.innerHeight || docElement.clientHeight) + row
 
   })(window, document.documentElement)
 
@@ -102,11 +104,9 @@
           : prevFrame(spriteElement)
       )
 
-      const { target, row } = spriteElement
-      if (!elementInViewY(target, row)) return
+      if (!elementInViewY(spriteElement)) return
 
-      const { x, y } = getFrame(spriteElement)
-      win.requestAnimationFrame(() => { target.style.backgroundPosition = `${x}px ${y}px` })
+      win.requestAnimationFrame(() => (setBackgroundPosition(spriteElement)))
     }
   }
 
