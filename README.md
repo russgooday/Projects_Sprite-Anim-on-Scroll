@@ -29,3 +29,5 @@ CSS
   background: #000 url('../images/sprite.jpg') no-repeat 0px 0px;
 }
 ```
+Demo
+[Codepen: animate on scroll](https://codepen.io/rpg2019/pen/ExKMMBa)
