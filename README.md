@@ -5,7 +5,7 @@ Sprite animation driven by the page's vertical scroll. Works on an elements back
 Example usage
 
 JS
-```js
+```javascript
 spritePlayOnScroll(
   // element with background image
   document.querySelector('#sprite-anim'),
@@ -22,7 +22,7 @@ spritePlayOnScroll(
 ```
 
 CSS
-```css
+```scss
 #sprite-anim {
   width: 320px; // 3200 / 10
   height: 160px; // 640 / 4
